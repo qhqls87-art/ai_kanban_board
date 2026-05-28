@@ -1,0 +1,6 @@
+*
+!index.html
+!.gitignore
+!.github/
+!.github/workflows/
+!.github/workflows/deploy.yml

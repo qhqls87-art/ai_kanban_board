@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>칸반보드 · 업무관리</title>
+  <style>
+    :root {
+      --bg:         #f4f5f7;
+      --header-bg:  #172b4d;
+      --col-bg:     #ebecf0;
+      --card-bg:    #ffffff;
+      --accent:     #0052cc;
+      --accent-hov: #0065ff;
+      --text:       #172b4d;
+      --text-2:     #5e6c84;
+      --text-3:     #97a0af;
+      --border:     #dfe1e6;
+      --ind-todo:   #6b778c;
+      --ind-doing:  #0052cc;
+      --ind-done:   #00875a;
+      --p-high:     #de350b;
+      --p-med:      #ff991f;
+      --p-low:      #36b37e;
+      --shadow-sm:  0 1px 3px rgba(9,30,66,.1), 0 0 0 1px rgba(9,30,66,.06);
+      --shadow-md:  0 4px 14px rgba(9,30,66,.14);
+      --r:          4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+      font-size: 14px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Header ───────────────────────────────── */
+    .app-header {
+      background: var(--header-bg);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 14px;
+      flex-shrink: 0;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-weight: 700;
+      font-size: 15px;
+      color: #fff;
+      text-decoration: none;
+    }
+    .logo-box {
+      width: 28px; height: 28px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3px;
+      padding: 5px;
+    }
+    .logo-box span {
+      background: rgba(255,255,255,.85);
+      border-radius: 1px;
+    }
+    .h-divider { width: 1px; height: 18px; background: rgba(255,255,255,.18); }
+    .h-project { font-size: 13px; color: rgba(255,255,255,.65); }
+    .h-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+    .h-stat {
+      font-size: 11px;
+      color: rgba(255,255,255,.5);
+      display: flex;
+      gap: 12px;
+    }
+    .h-stat span strong { color: #fff; font-size: 13px; }
+    .h-date { font-size: 11px; color: rgba(255,255,255,.4); }
+
+    /* ── Toolbar ──────────────────────────────── */
+    .toolbar {
+      background: #fff;
+      border-bottom: 2px solid var(--border);
+      height: 46px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .toolbar-title { font-size: 14px; font-weight: 700; }
+    .toolbar-right { margin-left: auto; display: flex; gap: 8px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 14px;
+      border-radius: var(--r);
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .12s, box-shadow .12s;
+      font-family: inherit;
+      white-space: nowrap;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hov); box-shadow: 0 2px 8px rgba(0,82,204,.35); }
+    .btn-ghost { background: transparent; color: var(--text-2); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { background: var(--bg); }
+
+    /* ── Board ────────────────────────────────── */
+    .board {
+      flex: 1;
+      display: flex;
+      gap: 16px;
+      padding: 18px 20px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      align-items: flex-start;
+    }
+
+    /* ── Column ───────────────────────────────── */
+    .column {
+      width: 308px;
+      min-width: 308px;
+      background: var(--col-bg);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      max-height: 100%;
+    }
+    .col-header {
+      padding: 11px 12px 9px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-shrink: 0;
+    }
+    .col-dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .col-todo    .col-dot { background: var(--ind-todo); }
+    .col-doing   .col-dot { background: var(--ind-doing); }
+    .col-done    .col-dot { background: var(--ind-done); }
+    .col-name {
+      font-size: 11.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      color: var(--text);
+    }
+    .col-count {
+      min-width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(9,30,66,.13);
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+    }
+    .col-add-btn {
+      margin-left: auto;
+      width: 26px; height: 26px;
+      border-radius: var(--r);
+      border: none;
+      background: transparent;
+      color: var(--text-2);
+      font-size: 17px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+      transition: background .12s, color .12s;
+    }
+    .col-add-btn:hover { background: rgba(9,30,66,.1); color: var(--text); }
+
+    .col-cards {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2px 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-height: 40px;
+    }
+    .col-cards::-webkit-scrollbar { width: 4px; }
+    .col-cards::-webkit-scrollbar-thumb { background: rgba(9,30,66,.18); border-radius: 2px; }
+    .col-cards.drop-active { background: rgba(0,82,204,.07); border-radius: 4px; }
+
+    .col-footer {
+      flex-shrink: 0;
+      padding: 5px 8px 8px;
+    }
+    .foot-add {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 8px;
+      border-radius: var(--r);
+      border: none;
+      background: transparent;
+      color: var(--text-2);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .12s, color .12s;
+      font-family: inherit;
+    }
+    .foot-add:hover { background: rgba(9,30,66,.1); color: var(--text); }
+
+    /* ── Card ─────────────────────────────────── */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-sm);
+      padding: 10px 11px;
+      cursor: grab;
+      transition: box-shadow .15s, transform .1s;
+      position: relative;
+      user-select: none;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card.is-dragging { opacity: .45; transform: scale(.97) rotate(1.5deg); cursor: grabbing; }
+
+    /* Label bar */
+    .card-labels {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 7px;
+    }
+    .lbar {
+      height: 5px;
+      border-radius: 2px;
+      min-width: 36px;
+    }
+    .lbar-dev       { background: #0052cc; }
+    .lbar-design    { background: #6554c0; }
+    .lbar-marketing { background: #00875a; }
+    .lbar-bug       { background: #de350b; }
+    .lbar-feature   { background: #ff991f; }
+    .lbar-review    { background: #00b8d9; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: var(--text);
+      margin-bottom: 5px;
+      padding-right: 40px;
+    }
+    .card-desc {
+      font-size: 11.5px;
+      color: var(--text-2);
+      line-height: 1.55;
+      margin-bottom: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .card-meta-l { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+
+    .pbadge {
+      font-size: 9.5px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+    }
+    .p-high   { background: #ffebe6; color: var(--p-high); }
+    .p-medium { background: #fff8e6; color: var(--p-med); }
+    .p-low    { background: #e3fcef; color: var(--p-low); }
+
+    .card-due {
+      font-size: 10.5px;
+      color: var(--text-3);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .card-due.overdue { color: var(--p-high); font-weight: 600; }
+    .card-due.today   { color: var(--p-med);  font-weight: 600; }
+
+    .card-avatar {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 9.5px;
+      font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar-colors { }
+
+    /* Card hover actions */
+    .card-acts {
+      position: absolute;
+      top: 7px; right: 7px;
+      display: none;
+      gap: 2px;
+    }
+    .card:hover .card-acts { display: flex; }
+    .act-btn {
+      width: 22px; height: 22px;
+      border-radius: 3px;
+      border: none;
+      background: rgba(9,30,66,.08);
+      color: var(--text-2);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      transition: background .1s;
+    }
+    .act-btn:hover { background: rgba(9,30,66,.16); }
+    .act-del:hover { background: #ffebe6 !important; color: var(--p-high); }
+
+    /* Done column opacity */
+    .col-done .card { opacity: .75; }
+    .col-done .card:hover { opacity: 1; }
+    .col-done .card-title { text-decoration: line-through; color: var(--text-2); }
+
+    /* ── Modal ────────────────────────────────── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(9,30,66,.54);
+      z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+      animation: fadeO .15s ease;
+    }
+    @keyframes fadeO { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal {
+      background: #fff;
+      border-radius: 8px;
+      width: 480px;
+      max-width: 100%;
+      box-shadow: 0 24px 48px rgba(9,30,66,.28);
+      animation: slideM .18s ease;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+    }
+    @keyframes slideM { from { transform: translateY(-14px); opacity: 0; } }
+
+    .m-head {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .m-title { font-size: 15px; font-weight: 700; }
+    .m-close {
+      width: 26px; height: 26px;
+      border-radius: 4px; border: none;
+      background: transparent; color: var(--text-2);
+      font-size: 18px; cursor: pointer; line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .m-close:hover { background: var(--bg); }
+
+    .m-body {
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      overflow-y: auto;
+    }
+    .m-foot {
+      padding: 12px 22px 18px;
+      display: flex; justify-content: flex-end; gap: 8px;
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg label { font-size: 11.5px; font-weight: 700; color: var(--text-2); }
+    .finput, .ftarea, .fsel {
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      transition: border-color .12s;
+      font-family: inherit;
+      background: #fff;
+      width: 100%;
+    }
+    .finput:focus, .ftarea:focus, .fsel:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(0,82,204,.12); }
+    .ftarea { resize: vertical; min-height: 68px; line-height: 1.5; }
+    .frow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .label-sel { display: flex; flex-wrap: wrap; gap: 5px; }
+    .lopt {
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      border: 2px solid transparent;
+      color: #fff;
+      transition: all .1s;
+      user-select: none;
+    }
+    .lopt.on { box-shadow: 0 0 0 2px rgba(9,30,66,.25); border-color: rgba(0,0,0,.3); }
+    .lopt-dev       { background: #0052cc; }
+    .lopt-design    { background: #6554c0; }
+    .lopt-marketing { background: #00875a; }
+    .lopt-bug       { background: #de350b; }
+    .lopt-feature   { background: #ff991f; }
+    .lopt-review    { background: #00b8d9; }
+
+    /* ── Toast ────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 22px; left: 50%;
+      transform: translateX(-50%) translateY(6px);
+      background: #172b4d;
+      color: #fff;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s, transform .18s;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Empty state ──────────────────────────── */
+    .col-empty {
+      text-align: center;
+      padding: 20px 12px;
+      color: var(--text-3);
+      font-size: 12px;
+      line-height: 1.6;
+      display: none;
+    }
+    .col-cards:empty + .col-empty,
+    .col-cards.is-empty ~ .col-empty { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────── -->
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-box">
+      <span></span><span></span>
+      <span></span><span></span>
+    </div>
+    업무 관리
+  </div>
+  <div class="h-divider"></div>
+  <span class="h-project">칸반보드</span>
+  <div class="h-right">
+    <div class="h-stat">
+      <span>전체 <strong id="statTotal">0</strong></span>
+      <span>진행중 <strong id="statDoing">0</strong></span>
+      <span>완료 <strong id="statDone">0</strong></span>
+    </div>
+    <div class="h-date" id="hDate"></div>
+  </div>
+</header>
+
+<!-- ── Toolbar ──────────────────────────────────── -->
+<div class="toolbar">
+  <span class="toolbar-title">현재 스프린트</span>
+  <div class="toolbar-right">
+    <button class="btn btn-ghost" onclick="resetBoard()">초기화</button>
+    <button class="btn btn-primary" onclick="openModal(null)">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      카드 추가
+    </button>
+  </div>
+</div>
+
+<!-- ── Board ─────────────────────────────────────── -->
+<div class="board">
+
+  <!-- To Do -->
+  <div class="column col-todo">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-name">To Do</span>
+      <span class="col-count" id="cnt-todo">0</span>
+      <button class="col-add-btn" onclick="openModal('todo')" title="추가">+</button>
+    </div>
+    <div class="col-cards" id="cards-todo"
+      ondragover="onDragOver(event)"
+      ondrop="onDrop(event,'todo')"
+      ondragleave="onDragLeave(event)">
+    </div>
+    <div class="col-footer">
+      <button class="foot-add" onclick="openModal('todo')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        카드 추가
+      </button>
+    </div>
+  </div>
+
+  <!-- 진행중 -->
+  <div class="column col-doing">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-name">진행 중</span>
+      <span class="col-count" id="cnt-doing">0</span>
+      <button class="col-add-btn" onclick="openModal('doing')" title="추가">+</button>
+    </div>
+    <div class="col-cards" id="cards-doing"
+      ondragover="onDragOver(event)"
+      ondrop="onDrop(event,'doing')"
+      ondragleave="onDragLeave(event)">
+    </div>
+    <div class="col-footer">
+      <button class="foot-add" onclick="openModal('doing')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        카드 추가
+      </button>
+    </div>
+  </div>
+
+  <!-- 완료 -->
+  <div class="column col-done">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-name">완료</span>
+      <span class="col-count" id="cnt-done">0</span>
+      <button class="col-add-btn" onclick="openModal('done')" title="추가">+</button>
+    </div>
+    <div class="col-cards" id="cards-done"
+      ondragover="onDragOver(event)"
+      ondrop="onDrop(event,'done')"
+      ondragleave="onDragLeave(event)">
+    </div>
+    <div class="col-footer">
+      <button class="foot-add" onclick="openModal('done')">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        카드 추가
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal ─────────────────────────────────────── -->
+<div class="overlay" id="overlay" style="display:none;" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="m-head">
+      <span class="m-title" id="mTitle">카드 추가</span>
+      <button class="m-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="m-body">
+      <div class="fg">
+        <label>제목 <span style="color:#de350b">*</span></label>
+        <input class="finput" id="fTitle" placeholder="업무 제목을 입력하세요" maxlength="80" />
+      </div>
+      <div class="fg">
+        <label>설명</label>
+        <textarea class="ftarea" id="fDesc" placeholder="상세 내용 (선택사항)"></textarea>
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label>담당자</label>
+          <input class="finput" id="fAssignee" placeholder="이름" maxlength="20" />
+        </div>
+        <div class="fg">
+          <label>마감일</label>
+          <input type="date" class="finput" id="fDue" />
+        </div>
+      </div>
+      <div class="frow">
+        <div class="fg">
+          <label>우선순위</label>
+          <select class="fsel" id="fPriority">
+            <option value="medium">보통</option>
+            <option value="high">높음</option>
+            <option value="low">낮음</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>컬럼</label>
+          <select class="fsel" id="fStatus">
+            <option value="todo">To Do</option>
+            <option value="doing">진행 중</option>
+            <option value="done">완료</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>라벨</label>
+        <div class="label-sel">
+          <span class="lopt lopt-dev"       data-v="dev"       onclick="toggleLabel(this)">개발</span>
+          <span class="lopt lopt-design"    data-v="design"    onclick="toggleLabel(this)">디자인</span>
+          <span class="lopt lopt-marketing" data-v="marketing" onclick="toggleLabel(this)">마케팅</span>
+          <span class="lopt lopt-bug"       data-v="bug"       onclick="toggleLabel(this)">버그</span>
+          <span class="lopt lopt-feature"   data-v="feature"   onclick="toggleLabel(this)">기능</span>
+          <span class="lopt lopt-review"    data-v="review"    onclick="toggleLabel(this)">검토</span>
+        </div>
+      </div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveCard()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ── Constants ──────────────────────────────────── */
+const LS = 'kanban_v1';
+const AVATAR_COLORS = ['#0052cc','#6554c0','#00875a','#de350b','#ff991f','#00b8d9','#172b4d','#36b37e'];
+
+const SAMPLE = [
+  { id: s(), title: '2분기 마케팅 캠페인 기획', desc: '온·오프라인 채널별 캠페인 및 예산안 작성', assignee: '김민준', due: '2026-06-15', priority: 'high',   status: 'todo',  labels: ['marketing'] },
+  { id: s(), title: '신규 기능 UI 시안 제작', desc: '대시보드 개편 모바일 반응형 디자인 포함', assignee: '이수연', due: '2026-06-10', priority: 'medium', status: 'todo',  labels: ['design','feature'] },
+  { id: s(), title: '결제 API 연동 개발',      desc: 'PG사 연동 후 단위·통합 테스트 진행',       assignee: '박지호', due: '2026-06-08', priority: 'high',   status: 'doing', labels: ['dev'] },
+  { id: s(), title: '로그인 토큰 만료 버그 수정', desc: 'OAuth 자동 갱신 미작동 이슈 패치',      assignee: '최아름', due: '2026-05-30', priority: 'high',   status: 'doing', labels: ['bug','dev'] },
+  { id: s(), title: '코드 리뷰 — 검색 모듈',  desc: '',                                         assignee: '박지호', due: '2026-06-05', priority: 'low',    status: 'doing', labels: ['review'] },
+  { id: s(), title: '1분기 성과 보고서 제출',   desc: 'KPI 달성률 및 매출 분석 최종본 제출 완료', assignee: '강태양', due: '2026-05-20', priority: 'low',    status: 'done',  labels: [] },
+  { id: s(), title: 'AWS 인프라 점검',          desc: 'EC2·RDS 인스턴스 성능 점검 및 정리',      assignee: '박지호', due: '2026-05-18', priority: 'medium', status: 'done',  labels: ['dev'] },
+];
+
+function s() { return Math.random().toString(36).slice(2, 10); }
+
+/* ── State ──────────────────────────────────────── */
+let cards       = [];
+let editingId   = null;
+let dragId      = null;
+let selLabels   = new Set();
+
+/* ── Init ───────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('hDate').textContent =
+    new Date().toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric' });
+
+  const saved = localStorage.getItem(LS);
+  cards = saved ? JSON.parse(saved) : SAMPLE.map(c => ({ ...c, id: s(), createdAt: Date.now() }));
+  renderAll();
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+});
+
+/* ── Render ─────────────────────────────────────── */
+function renderAll() {
+  ['todo','doing','done'].forEach(col => {
+    const el = document.getElementById('cards-' + col);
+    const colCards = cards.filter(c => c.status === col);
+    el.innerHTML = colCards.map(cardHTML).join('');
+    document.getElementById('cnt-' + col).textContent = colCards.length;
+    el.classList.toggle('is-empty', colCards.length === 0);
+  });
+  updateStats();
+  persist();
+}
+
+function cardHTML(c) {
+  const labels = (c.labels || []).map(l =>
+    `<div class="lbar lbar-${l}"></div>`
+  ).join('');
+
+  const pClass = { high:'p-high', medium:'p-medium', low:'p-low' }[c.priority] || 'p-medium';
+  const pLabel = { high:'높음', medium:'보통', low:'낮음' }[c.priority] || '보통';
+
+  let dueHTML = '';
+  if (c.due) {
+    const today   = new Date().toISOString().slice(0,10);
+    const overdue = c.due < today && c.status !== 'done';
+    const isToday = c.due === today;
+    const cls     = overdue ? 'overdue' : isToday ? 'today' : '';
+    const d       = new Date(c.due + 'T00:00:00');
+    const label   = `${d.getMonth()+1}/${d.getDate()}`;
+    dueHTML = `<span class="card-due ${cls}">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="1.5" width="8" height="7.5" rx="1" stroke="currentColor" stroke-width="1.1"/><path d="M3 1v1.5M7 1v1.5M1 4h8" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      ${label}${overdue ? ' 초과' : ''}
+    </span>`;
+  }
+
+  const initials = c.assignee
+    ? c.assignee.slice(0, 2)
+    : '?';
+  const avatarColor = c.assignee
+    ? AVATAR_COLORS[c.assignee.charCodeAt(0) % AVATAR_COLORS.length]
+    : '#97a0af';
+
+  const descHTML = c.desc
+    ? `<div class="card-desc">${esc(c.desc)}</div>`
+    : '';
+
+  return `
+  <div class="card" id="card-${c.id}"
+    draggable="true"
+    ondragstart="onDragStart(event,'${c.id}')"
+    ondragend="onDragEnd(event)">
+    ${labels.length ? `<div class="card-labels">${labels}</div>` : ''}
+    <div class="card-title">${esc(c.title)}</div>
+    ${descHTML}
+    <div class="card-meta">
+      <div class="card-meta-l">
+        <span class="pbadge ${pClass}">${pLabel}</span>
+        ${dueHTML}
+      </div>
+      <div class="card-avatar" style="background:${avatarColor}" title="${esc(c.assignee||'미배정')}">
+        ${esc(initials)}
+      </div>
+    </div>
+    <div class="card-acts">
+      <button class="act-btn" onclick="openModal(null,'${c.id}')" title="편집">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 9l2-1L8.5 2.5a1 1 0 00-1-1L2 7 1 9z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="act-btn act-del" onclick="deleteCard('${c.id}')" title="삭제">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 3h6M4.5 1h1M4 3v5.5M6 3v5.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+/* ── Stats ──────────────────────────────────────── */
+function updateStats() {
+  document.getElementById('statTotal').textContent = cards.length;
+  document.getElementById('statDoing').textContent = cards.filter(c => c.status === 'doing').length;
+  document.getElementById('statDone').textContent  = cards.filter(c => c.status === 'done').length;
+}
+
+/* ── Modal ──────────────────────────────────────── */
+function openModal(defaultStatus, editId) {
+  editingId = editId || null;
+  selLabels = new Set();
+
+  document.getElementById('mTitle').textContent = editId ? '카드 편집' : '카드 추가';
+  document.getElementById('overlay').style.display = 'flex';
+
+  // reset labels UI
+  document.querySelectorAll('.lopt').forEach(el => el.classList.remove('on'));
+
+  if (editId) {
+    const c = cards.find(x => x.id === editId);
+    if (!c) return;
+    document.getElementById('fTitle').value    = c.title;
+    document.getElementById('fDesc').value     = c.desc || '';
+    document.getElementById('fAssignee').value = c.assignee || '';
+    document.getElementById('fDue').value      = c.due || '';
+    document.getElementById('fPriority').value = c.priority;
+    document.getElementById('fStatus').value   = c.status;
+    (c.labels || []).forEach(l => {
+      selLabels.add(l);
+      document.querySelector(`.lopt[data-v="${l}"]`)?.classList.add('on');
+    });
+  } else {
+    document.getElementById('fTitle').value    = '';
+    document.getElementById('fDesc').value     = '';
+    document.getElementById('fAssignee').value = '';
+    document.getElementById('fDue').value      = '';
+    document.getElementById('fPriority').value = 'medium';
+    document.getElementById('fStatus').value   = defaultStatus || 'todo';
+  }
+
+  setTimeout(() => document.getElementById('fTitle').focus(), 60);
+}
+
+function closeModal() {
+  document.getElementById('overlay').style.display = 'none';
+  editingId = null;
+}
+
+function overlayClick(e) {
+  if (e.target.id === 'overlay') closeModal();
+}
+
+function toggleLabel(el) {
+  const v = el.dataset.v;
+  if (selLabels.has(v)) { selLabels.delete(v); el.classList.remove('on'); }
+  else                  { selLabels.add(v);    el.classList.add('on'); }
+}
+
+function saveCard() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { document.getElementById('fTitle').focus(); toast('제목을 입력해주세요.'); return; }
+
+  const data = {
+    title,
+    desc:     document.getElementById('fDesc').value.trim(),
+    assignee: document.getElementById('fAssignee').value.trim(),
+    due:      document.getElementById('fDue').value,
+    priority: document.getElementById('fPriority').value,
+    status:   document.getElementById('fStatus').value,
+    labels:   [...selLabels],
+  };
+
+  if (editingId) {
+    const idx = cards.findIndex(c => c.id === editingId);
+    if (idx > -1) cards[idx] = { ...cards[idx], ...data };
+    toast('카드가 수정됐습니다.');
+  } else {
+    cards.push({ id: s(), createdAt: Date.now(), ...data });
+    toast('카드가 추가됐습니다.');
+  }
+
+  closeModal();
+  renderAll();
+}
+
+/* ── Delete / Reset ─────────────────────────────── */
+function deleteCard(id) {
+  cards = cards.filter(c => c.id !== id);
+  renderAll();
+  toast('카드가 삭제됐습니다.');
+}
+
+function resetBoard() {
+  if (!confirm('보드를 초기화하면 모든 카드가 삭제됩니다. 계속할까요?')) return;
+  cards = [];
+  renderAll();
+  toast('보드가 초기화됐습니다.');
+}
+
+/* ── Drag & Drop ────────────────────────────────── */
+function onDragStart(e, id) {
+  dragId = id;
+  document.getElementById('card-' + id)?.classList.add('is-dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragEnd(e) {
+  if (dragId) document.getElementById('card-' + dragId)?.classList.remove('is-dragging');
+  dragId = null;
+  document.querySelectorAll('.col-cards').forEach(el => el.classList.remove('drop-active'));
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drop-active');
+}
+
+function onDragLeave(e) {
+  if (!e.currentTarget.contains(e.relatedTarget))
+    e.currentTarget.classList.remove('drop-active');
+}
+
+function onDrop(e, col) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drop-active');
+  if (!dragId) return;
+  const c = cards.find(x => x.id === dragId);
+  if (c && c.status !== col) {
+    c.status = col;
+    renderAll();
+    toast(`카드를 "${{'todo':'To Do','doing':'진행 중','done':'완료'}[col]}"으로 이동했습니다.`);
+  }
+}
+
+/* ── Utils ──────────────────────────────────────── */
+function persist() { localStorage.setItem(LS, JSON.stringify(cards)); }
+function esc(str)  { return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+</script>
+</body>
+</html>
